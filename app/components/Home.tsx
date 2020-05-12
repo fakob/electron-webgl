@@ -1,9 +1,9 @@
 /* eslint-disable no-console */
 import * as cv from 'opencv4nodejs';
-import React, { useState } from 'react';
-// import styles from './Counter.css';
-// import { Link } from 'react-router-dom';
-// import routes from '../constants/routes.json';
+import * as PIXI from 'pixi.js';
+import React, { useEffect, useState } from 'react';
+import placeHolder from '../resources/Placeholder.png';
+
 import { VideoCaptureProperties } from '../constants/openCVProperties';
 
 const { dialog } = require('electron').remote;
@@ -13,7 +13,42 @@ console.log(`OpenCV version: ${cv.version}`);
 console.log(`ffmpeg version (manually entered): 3.4.2`);
 
 export default function Home() {
-  const [htmlImg, setHtmlImg] = useState('');
+  const [htmlImg] = useState('');
+
+  let bunny: PIXI.Sprite;
+  const canvas = document.getElementById('myCanvas') as HTMLCanvasElement;
+
+  const app = new PIXI.Application({
+    // view: canvas,
+    backgroundColor: 0x1099bb
+  });
+  const loader = PIXI.Loader.shared; // PixiJS exposes a premade instance for you to use.
+  document.body.appendChild(app.view);
+
+  // on mount
+  useEffect(() => {
+    // create a new Sprite from an image path
+    // create a second texture
+    const texture = PIXI.Texture.from(placeHolder);
+    bunny = new PIXI.Sprite(texture);
+
+    // center the sprite's anchor point
+    bunny.anchor.set(0.5);
+
+    // move the sprite to the center of the screen
+    bunny.x = app.screen.width / 2;
+    bunny.y = app.screen.height / 2;
+
+    app.stage.addChild(bunny);
+
+    // Listen for animate update
+    app.ticker.add(delta => {
+      // just for fun, let's rotate mr rabbit a little
+      // delta is 1 if running at 100% performance
+      // creates frame-independent transformation
+      bunny.rotation += 0.1 * delta;
+    });
+  }, []);
 
   const showVideo = (path: string) => {
     console.log(path);
@@ -42,7 +77,13 @@ export default function Home() {
         console.log(mat);
         const matScaled = mat.resizeToMax(960);
         const outBase64 = cv.imencode('.jpg', matScaled).toString('base64'); // Perform base64 encoding
-        setHtmlImg(`data:image/jpeg;base64,${outBase64}`);
+        // setHtmlImg(`data:image/jpeg;base64,${outBase64}`);
+
+        loader
+          .add('frame', `data:image/jpeg;base64,${outBase64}`)
+          .load((_1, resources) => {
+            bunny.texture = resources.frame.texture;
+          });
 
         return undefined;
       })
@@ -67,13 +108,11 @@ export default function Home() {
       data-tid="container"
     >
       <h2>Home</h2>
-      {/* <div>
-        <Link to={routes.COUNTER}>to Counter</Link>
-      </div> */}
       <br />
       <button type="button" onClick={openFile}>
         Open video
       </button>
+      <canvas id="myCanvas" />
       <img alt="" src={htmlImg} />
     </div>
   );
