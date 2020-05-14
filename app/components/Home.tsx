@@ -15,40 +15,11 @@ console.log(`ffmpeg version (manually entered): 3.4.2`);
 
 export default function Home() {
   const [htmlImg] = useState('');
-
-  let bunny: PIXI.Sprite;
-  const canvas = document.getElementById('myCanvas') as HTMLCanvasElement;
-
-  const app = new PIXI.Application({
-    // view: canvas,
-    backgroundColor: 0x1099bb
-  });
-  const loader = PIXI.Loader.shared; // PixiJS exposes a premade instance for you to use.
-  document.body.appendChild(app.view);
+  const [base64Array, setBase64Array] = useState<Array<string>>([]);
 
   // on mount
   useEffect(() => {
-    // create a new Sprite from an image path
-    // create a second texture
-    const texture = PIXI.Texture.from(placeHolder);
-    bunny = new PIXI.Sprite(texture);
 
-    // center the sprite's anchor point
-    bunny.anchor.set(0.5);
-
-    // move the sprite to the center of the screen
-    bunny.x = app.screen.width / 2;
-    bunny.y = app.screen.height / 2;
-
-    app.stage.addChild(bunny);
-
-    // Listen for animate update
-    app.ticker.add(delta => {
-      // just for fun, let's rotate mr rabbit a little
-      // delta is 1 if running at 100% performance
-      // creates frame-independent transformation
-      bunny.rotation += 0.1 * delta;
-    });
   }, []);
 
   const showVideo = (path: string) => {
@@ -78,13 +49,10 @@ export default function Home() {
         console.log(mat);
         const matScaled = mat.resizeToMax(960);
         const outBase64 = cv.imencode('.jpg', matScaled).toString('base64'); // Perform base64 encoding
-        // setHtmlImg(`data:image/jpeg;base64,${outBase64}`);
 
-        loader
-          .add('frame', `data:image/jpeg;base64,${outBase64}`)
-          .load((_1, resources) => {
-            bunny.texture = resources.frame.texture;
-          });
+        const tempArray: string[] = base64Array.slice();
+        tempArray.push(`data:image/jpeg;base64,${outBase64}`);
+        setBase64Array(tempArray);
 
         return undefined;
       })
@@ -114,7 +82,15 @@ export default function Home() {
         Open video
       </button>
       <Stage>
-        <Sprite image={placeHolder} x={10} y={10} />
+        {base64Array.map((base64, index) => (
+          <Sprite
+            key={`img-${index}`}
+            image={base64}
+            scale={{ x: 0.5, y: 0.5 }}
+            x={10}
+            y={300 * index}
+          />
+        ))}
       </Stage>
       {/* <canvas id="myCanvas" /> */}
       <img alt="" src={htmlImg} />
