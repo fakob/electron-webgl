@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import * as cv from 'opencv4nodejs';
 import * as PIXI from 'pixi.js';
+import { Stage, Sprite } from '@inlet/react-pixi';
 import React, { useEffect, useState } from 'react';
 import placeHolder from '../resources/Placeholder.png';
 
@@ -112,7 +113,10 @@ export default function Home() {
       <button type="button" onClick={openFile}>
         Open video
       </button>
-      <canvas id="myCanvas" />
+      <Stage>
+        <Sprite image={placeHolder} x={10} y={10} />
+      </Stage>
+      {/* <canvas id="myCanvas" /> */}
       <img alt="" src={htmlImg} />
     </div>
   );
