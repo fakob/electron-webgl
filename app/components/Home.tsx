@@ -1,11 +1,15 @@
 /* eslint-disable no-console */
 import * as cv from 'opencv4nodejs';
-import * as PIXI from 'pixi.js';
 import { Stage, Sprite } from '@inlet/react-pixi';
 import React, { useEffect, useState } from 'react';
-import placeHolder from '../resources/Placeholder.png';
-
-import { VideoCaptureProperties } from '../constants/openCVProperties';
+import {
+  defaultMovieInfo,
+  getMovieInfo,
+  getThumbs,
+  mapRange,
+  MovieInfo
+} from './OpencvWorker';
+// import placeHolder from '../resources/Placeholder.png';
 
 const { dialog } = require('electron').remote;
 
@@ -14,49 +18,27 @@ console.log(`OpenCV version: ${cv.version}`);
 console.log(`ffmpeg version (manually entered): 3.4.2`);
 
 export default function Home() {
-  const [htmlImg] = useState('');
   const [base64Array, setBase64Array] = useState<Array<string>>([]);
+  const [movieInfo, setMovieInfo] = useState<MovieInfo>(defaultMovieInfo);
 
   // on mount
-  useEffect(() => {
-
-  }, []);
+  useEffect(() => {}, []);
 
   const showVideo = (path: string) => {
     console.log(path);
 
-    const vid = new cv.VideoCapture(path);
-    const lengthInFrames =
-      vid.get(VideoCaptureProperties.CAP_PROP_FRAME_COUNT) - 1;
-    console.log(lengthInFrames);
+    const { frameCount } = movieInfo;
+    const amount = 10;
 
-    const frameToCapture = Math.round(lengthInFrames / 2);
-    console.log(frameToCapture);
-    vid.set(VideoCaptureProperties.CAP_PROP_POS_FRAMES, frameToCapture);
-    console.log(vid.get(VideoCaptureProperties.CAP_PROP_POS_FRAMES));
-    if (
-      frameToCapture !== vid.get(VideoCaptureProperties.CAP_PROP_POS_FRAMES)
-    ) {
-      // playhead not at correct position, use ratio instead
-      vid.set(VideoCaptureProperties.CAP_PROP_POS_AVI_RATIO, 0.5);
-    }
+    setMovieInfo(getMovieInfo(path));
+    const frameNumberArray = Array.from(Array(amount).keys()).map(x =>
+      mapRange(x, 0, amount - 1, 0, frameCount, true)
+    );
 
-    // read frame from capture
-    vid
-      .readAsync()
-      .then(mat => {
-        // show image
-        console.log(mat);
-        const matScaled = mat.resizeToMax(960);
-        const outBase64 = cv.imencode('.jpg', matScaled).toString('base64'); // Perform base64 encoding
+    const tempArray: string[] = getThumbs(path, frameNumberArray);
+    console.log(tempArray);
 
-        const tempArray: string[] = base64Array.slice();
-        tempArray.push(`data:image/jpeg;base64,${outBase64}`);
-        setBase64Array(tempArray);
-
-        return undefined;
-      })
-      .catch(err => console.error(err));
+    setBase64Array(tempArray);
   };
 
   const openFile = () => {
@@ -70,6 +52,9 @@ export default function Home() {
       })
       .catch(err => console.error(err));
   };
+
+  const { width, height } = movieInfo;
+  const scale = 0.1;
 
   return (
     <div
@@ -86,14 +71,14 @@ export default function Home() {
           <Sprite
             key={`img-${index}`}
             image={base64}
-            scale={{ x: 0.5, y: 0.5 }}
-            x={10}
-            y={300 * index}
+            scale={{ x: scale, y: scale }}
+            width={width * scale}
+            height={height * scale}
+            x={0}
+            y={height * scale * index}
           />
         ))}
       </Stage>
-      {/* <canvas id="myCanvas" /> */}
-      <img alt="" src={htmlImg} />
     </div>
   );
 }
