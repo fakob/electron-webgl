@@ -282,6 +282,7 @@
     "electron-log": "^4.0.6",
     "electron-updater": "^4.2.0",
     "history": "^4.10.1",
+    "pixi-viewport": "^4.11.1",
     "pixi.js": "^5.2.4",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",

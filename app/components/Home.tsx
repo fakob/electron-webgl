@@ -1,7 +1,8 @@
 /* eslint-disable no-console */
 import * as cv from 'opencv4nodejs';
-import { Stage, Sprite } from '@inlet/react-pixi';
+import { Stage, Sprite, useApp } from '@inlet/react-pixi';
 import React, { useEffect, useState } from 'react';
+import ReactViewport from './Pixi';
 import {
   defaultMovieInfo,
   getMovieInfo,
@@ -17,9 +18,13 @@ console.log(`OpenCV version: ${cv.version}`);
 // for ffmpeg version check app/node_modules/opencv-build/opencv/build/CMakeVars.txt
 console.log(`ffmpeg version (manually entered): 3.4.2`);
 
+console.log(ReactViewport);
+
 export default function Home() {
   const [base64Array, setBase64Array] = useState<Array<string>>([]);
   const [movieInfo, setMovieInfo] = useState<MovieInfo>(defaultMovieInfo);
+
+  const app = useApp();
 
   // on mount
   useEffect(() => {}, []);
@@ -53,6 +58,10 @@ export default function Home() {
       .catch(err => console.error(err));
   };
 
+  const onFitClick = () => {
+    // ReactViewport.fitHeight();
+  };
+
   const { width, height } = movieInfo;
   const scale = 0.1;
 
@@ -63,21 +72,27 @@ export default function Home() {
     >
       <h2>Home</h2>
       <br />
+      <button type="button" onClick={onFitClick}>
+        Fit
+      </button>
       <button type="button" onClick={openFile}>
         Open video
       </button>
-      <Stage>
-        {base64Array.map((base64, index) => (
-          <Sprite
-            key={`img-${index}`}
-            image={base64}
-            scale={{ x: scale, y: scale }}
-            width={width * scale}
-            height={height * scale}
-            x={0}
-            y={height * scale * index}
-          />
-        ))}
+      <Stage width={700} height={500}>
+        {/* <T /> */}
+        <ReactViewport onFitClick={onFitClick} app={app}>
+          {base64Array.map((base64, index) => (
+            <Sprite
+              key={`img-${index}`}
+              image={base64}
+              scale={{ x: scale, y: scale }}
+              width={width * scale}
+              height={height * scale}
+              x={0}
+              y={height * scale * index}
+            />
+          ))}
+        </ReactViewport>
       </Stage>
     </div>
   );
