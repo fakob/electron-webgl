@@ -2,7 +2,7 @@
 import * as cv from 'opencv4nodejs';
 import { Stage, Sprite, useApp } from '@inlet/react-pixi';
 import React, { useEffect, useState } from 'react';
-import ReactViewport from './Pixi';
+import { Viewport, Rectangle, getGridPosition } from './Pixi';
 import {
   defaultMovieInfo,
   getMovieInfo,
@@ -10,6 +10,12 @@ import {
   mapRange,
   MovieInfo
 } from './OpencvWorker';
+import {
+  SCREENWIDTH,
+  SCREENHEIGHT,
+  WORLDWIDTH,
+  WORLDHEIGHT
+} from '../constants/constants';
 // import placeHolder from '../resources/Placeholder.png';
 
 const { dialog } = require('electron').remote;
@@ -18,13 +24,13 @@ console.log(`OpenCV version: ${cv.version}`);
 // for ffmpeg version check app/node_modules/opencv-build/opencv/build/CMakeVars.txt
 console.log(`ffmpeg version (manually entered): 3.4.2`);
 
-console.log(ReactViewport);
+console.log(Viewport);
 
 export default function Home() {
   const [base64Array, setBase64Array] = useState<Array<string>>([]);
   const [movieInfo, setMovieInfo] = useState<MovieInfo>(defaultMovieInfo);
-
-  const app = useApp();
+  const amount = 10;
+  const columnCount = 3;
 
   // on mount
   useEffect(() => {}, []);
@@ -33,7 +39,6 @@ export default function Home() {
     console.log(path);
 
     const { frameCount } = movieInfo;
-    const amount = 10;
 
     setMovieInfo(getMovieInfo(path));
     const frameNumberArray = Array.from(Array(amount).keys()).map(x =>
@@ -59,11 +64,10 @@ export default function Home() {
   };
 
   const onFitClick = () => {
-    // ReactViewport.fitHeight();
+    // PixiComponentViewport.fitHeight();
   };
 
   const { width, height } = movieInfo;
-  const scale = 0.1;
 
   return (
     <div
@@ -79,20 +83,42 @@ export default function Home() {
         Open video
       </button>
       <Stage width={700} height={500}>
-        {/* <T /> */}
-        <ReactViewport onFitClick={onFitClick} app={app}>
-          {base64Array.map((base64, index) => (
-            <Sprite
-              key={`img-${index}`}
-              image={base64}
-              scale={{ x: scale, y: scale }}
-              width={width * scale}
-              height={height * scale}
-              x={0}
-              y={height * scale * index}
-            />
-          ))}
-        </ReactViewport>
+        <Viewport
+          screenWidth={SCREENWIDTH}
+          screenHeight={SCREENHEIGHT}
+          worldWidth={WORLDWIDTH}
+          worldHeight={WORLDHEIGHT}
+        >
+          <Rectangle
+            x={0}
+            y={0}
+            width={SCREENWIDTH}
+            height={SCREENHEIGHT}
+            fill={0x222222}
+          />
+          {base64Array.map((base64, index) => {
+            const { x, y, scale } = getGridPosition(
+              columnCount,
+              SCREENWIDTH,
+              SCREENHEIGHT,
+              width,
+              height,
+              base64Array.length,
+              index
+            );
+            return (
+              <Sprite
+                key={`img-${index}`}
+                image={base64}
+                scale={{ x: scale, y: scale }}
+                width={width * scale}
+                height={height * scale}
+                x={x}
+                y={y}
+              />
+            );
+          })}
+        </Viewport>
       </Stage>
     </div>
   );

@@ -1,43 +1,58 @@
-import { Viewport } from 'pixi-viewport';
-import { PixiComponent } from '@inlet/react-pixi';
-import {
-  SCREENWIDTH,
-  SCREENHEIGHT,
-  WORLDWIDTH,
-  WORLDHEIGHT
-} from '../constants/constants';
+import React from 'react';
+import { Graphics } from 'pixi.js';
+import { Viewport as PixiViewport } from 'pixi-viewport';
+import { PixiComponent, useApp } from '@inlet/react-pixi';
 
-export default PixiComponent('Viewport', {
-  create: () => {
-    const viewport = new Viewport({
-      screenWidth: SCREENWIDTH,
-      screenHeight: SCREENHEIGHT,
-      worldWidth: WORLDWIDTH,
-      worldHeight: WORLDHEIGHT
+interface Props {
+  children: React.ReactNode;
+  screenWidth: number;
+  screenHeight: number;
+  worldWidth: number;
+  worldHeight: number;
+}
+
+export const Viewport = (props: Props) => {
+  const app = useApp();
+  console.log(app);
+  return <PixiComponentViewport app={app} {...props} />;
+};
+
+interface PixiComponentProps {
+  app: PIXI.Application;
+}
+
+const PixiComponentViewport = PixiComponent('Viewport', {
+  create: (props: PixiComponentProps & Props) => {
+    const viewport = new PixiViewport({
+      screenWidth: props.screenWidth,
+      screenHeight: props.screenHeight,
+      worldWidth: props.worldWidth,
+      worldHeight: props.worldHeight,
+      ticker: props.app.ticker,
+      interaction: props.app.renderer.plugins.interaction
+      // the interaction module is important for wheel to work properly when renderer.view is placed or scaled
     });
-    viewport.on('drag-start', () => console.log('drag-start'));
-    viewport.on('drag-end', () => console.log('drag-end'));
+    //viewport.on("drag-start", () => console.log("drag-start"));
+    //viewport.on("drag-end", () => console.log("drag-end"));
     viewport.on('clicked', () => {
-      viewport.fit();
       console.log('clicked');
+      // viewport.fitWorld();
+      viewport.fit();
+      viewport.moveCenter(props.screenWidth / 2, props.screenHeight / 2);
     });
 
     viewport
-      .clamp({
-        direction: 'all',
-        left: -WORLDWIDTH * 0.1,
-        right: WORLDWIDTH * 1.9,
-        top: -WORLDHEIGHT * 0.1,
-        bottom: WORLDHEIGHT * 1.9
-      })
       .drag()
       .pinch()
       .wheel()
+      // .clamp({ direction: 'all' })
+      // .clampZoom({ minScale: 0.5, maxScale: 1 })
       .decelerate({
         friction: 0.8
       });
 
-    //viewport.scaled = 30;
+    // viewport.clamp({ direction: 'all' });
+
     return viewport;
   },
   applyProps: (instance, oldProps, newProps) => {
@@ -50,3 +65,37 @@ export default PixiComponent('Viewport', {
     console.log('willUnmount');
   }
 });
+
+export const Rectangle = PixiComponent('Rectangle', {
+  create: props => new Graphics(),
+  applyProps: (instance, _, props) => {
+    const { x, y, width, height, fill } = props;
+    instance.clear();
+    instance.beginFill(fill);
+    instance.drawRect(x, y, width, height);
+    instance.endFill();
+  }
+});
+
+export const getGridPosition = (
+  columnCount: number,
+  screenWidth: number,
+  screenHeight: number,
+  width: number,
+  height: number,
+  amount: number,
+  index: number
+) => {
+  const scale = screenWidth / columnCount / width;
+  const scaledWidth = width * scale;
+  const scaledHeight = height * scale;
+  const x = (index % columnCount) * scaledWidth;
+  const y = Math.floor(index / columnCount) * scaledHeight;
+
+  console.log(`x: ${x}, y: ${y}, scale: ${scale}`);
+  return {
+    x,
+    y,
+    scale
+  };
+};
