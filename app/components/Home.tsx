@@ -29,7 +29,7 @@ console.log(Viewport);
 export default function Home() {
   const [base64Array, setBase64Array] = useState<Array<string>>([]);
   const [movieInfo, setMovieInfo] = useState<MovieInfo>(defaultMovieInfo);
-  const amount = 10;
+  const amount = 20;
   const columnCount = 3;
 
   // on mount
@@ -82,25 +82,25 @@ export default function Home() {
       <button type="button" onClick={openFile}>
         Open video
       </button>
-      <Stage width={700} height={500}>
+      <Stage width={700} height={500} options={{ resizeTo: window }}>
         <Viewport
-          screenWidth={SCREENWIDTH}
-          screenHeight={SCREENHEIGHT}
+          screenWidth={window.innerWidth}
+          screenHeight={window.innerHeight}
           worldWidth={WORLDWIDTH}
           worldHeight={WORLDHEIGHT}
         >
           <Rectangle
             x={0}
             y={0}
-            width={SCREENWIDTH}
-            height={SCREENHEIGHT}
+            width={window.innerWidth}
+            height={window.innerHeight}
             fill={0x222222}
           />
           {base64Array.map((base64, index) => {
             const { x, y, scale } = getGridPosition(
               columnCount,
-              SCREENWIDTH,
-              SCREENHEIGHT,
+              window.innerWidth,
+              window.innerHeight,
               width,
               height,
               base64Array.length,
