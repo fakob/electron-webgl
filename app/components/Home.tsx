@@ -2,7 +2,9 @@
 import * as cv from 'opencv4nodejs';
 import { Stage, Sprite, useApp } from '@inlet/react-pixi';
 import React, { useEffect, useState } from 'react';
+import ReactSlider from 'react-slider';
 import { Viewport, Rectangle, getGridPosition } from './Pixi';
+import styles from './Home.css';
 import {
   defaultMovieInfo,
   getMovieInfo,
@@ -11,8 +13,8 @@ import {
   MovieInfo
 } from './OpencvWorker';
 import {
-  SCREENWIDTH,
-  SCREENHEIGHT,
+  // SCREENWIDTH,
+  // SCREENHEIGHT,
   WORLDWIDTH,
   WORLDHEIGHT
 } from '../constants/constants';
@@ -28,9 +30,9 @@ console.log(Viewport);
 
 export default function Home() {
   const [base64Array, setBase64Array] = useState<Array<string>>([]);
+  const [amount, setAmount] = useState(20);
+  const [columnCount, setColumnCount] = useState(3);
   const [movieInfo, setMovieInfo] = useState<MovieInfo>(defaultMovieInfo);
-  const amount = 20;
-  const columnCount = 3;
 
   // on mount
   useEffect(() => {}, []);
@@ -82,6 +84,24 @@ export default function Home() {
       <button type="button" onClick={openFile}>
         Open video
       </button>
+      <ReactSlider
+        className={styles.horizontalSlider}
+        thumbClassName={styles.exampleThumb}
+        trackClassName={styles.exampleTrack}
+        defaultValue={20}
+        onChange={value => {
+          setAmount(value);
+        }}
+      />
+      <ReactSlider
+        className={styles.horizontalSlider}
+        thumbClassName={styles.exampleThumb}
+        trackClassName={styles.exampleTrack}
+        defaultValue={20}
+        onChange={value => {
+          setColumnCount(value);
+        }}
+      />
       <Stage width={700} height={500} options={{ resizeTo: window }}>
         <Viewport
           screenWidth={window.innerWidth}

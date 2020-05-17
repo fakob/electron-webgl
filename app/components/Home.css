@@ -12,3 +12,61 @@
 .container a {
   font-size: 1.4rem;
 }
+
+.horizontalSlider {
+  width: 100%;
+  max-width: 500px;
+  height: 50px;
+  border: 1px solid grey;
+}
+
+.exampleThumb {
+  font-size: 0.9em;
+  text-align: center;
+  background-color: black;
+  color: white;
+  cursor: pointer;
+  border: 5px solid gray;
+  box-sizing: border-box;
+}
+
+.exampleThumb.active {
+  background-color: grey;
+}
+
+.exampleTrack {
+  position: relative;
+  background: #ddd;
+}
+
+.exampleTrack.exampleTrack-1 {
+  background: #f00;
+}
+
+.exampleTrack.exampleTrack-2 {
+  background: #0f0;
+}
+
+.horizontalSlider .exampleTrack {
+  top: 20px;
+  height: 10px;
+}
+
+.horizontalSlider .exampleThumb {
+  top: 1px;
+  width: 50px;
+  height: 48px;
+  line-height: 38px;
+}
+
+.vertical-slider .exampleThumb {
+  left: 1px;
+  width: 48px;
+  line-height: 40px;
+  height: 50px;
+}
+
+.vertical-slider .exampleTrack {
+  left: 20px;
+  width: 10px;
+}
