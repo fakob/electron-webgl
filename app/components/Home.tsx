@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import * as cv from 'opencv4nodejs';
 import { Stage, Sprite, useApp } from '@inlet/react-pixi';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ReactSlider from 'react-slider';
 import { Viewport, Rectangle, getGridPosition } from './Pixi';
 import styles from './Home.css';
@@ -29,16 +29,24 @@ console.log(`ffmpeg version (manually entered): 3.4.2`);
 console.log(Viewport);
 
 export default function Home() {
+  const refStage = useRef(null);
+  const refViewport = useRef(null);
+  const refRectangle = useRef(null);
+
   const [base64Array, setBase64Array] = useState<Array<string>>([]);
   const [amount, setAmount] = useState(20);
   const [columnCount, setColumnCount] = useState(3);
   const [movieInfo, setMovieInfo] = useState<MovieInfo>(defaultMovieInfo);
+  const [moviePath, setMoviePath] = useState('');
 
   // on mount
-  useEffect(() => {}, []);
+  useEffect(() => {
+    console.log('viewport instance: ', refViewport.current);
+  }, []);
 
   const showVideo = (path: string) => {
     console.log(path);
+    setMoviePath(path);
 
     const { frameCount } = movieInfo;
 
@@ -66,7 +74,10 @@ export default function Home() {
   };
 
   const onFitClick = () => {
-    // PixiComponentViewport.fitHeight();
+    console.log(refStage.current);
+    console.log(refViewport.current);
+    console.log(refRectangle.current);
+    // PixiComponentViewport.moveCenter(0, 0);
   };
 
   const { width, height } = movieInfo;
@@ -89,8 +100,11 @@ export default function Home() {
         thumbClassName={styles.exampleThumb}
         trackClassName={styles.exampleTrack}
         defaultValue={20}
-        onChange={value => {
-          setAmount(value);
+        onAfterChange={value => {
+          if (typeof value === 'number') {
+            setAmount(value);
+            showVideo(moviePath);
+          }
         }}
       />
       <ReactSlider
@@ -99,17 +113,26 @@ export default function Home() {
         trackClassName={styles.exampleTrack}
         defaultValue={20}
         onChange={value => {
-          setColumnCount(value);
+          if (typeof value === 'number') {
+            setColumnCount(value);
+          }
         }}
       />
-      <Stage width={700} height={500} options={{ resizeTo: window }}>
+      <Stage
+        ref={refStage}
+        width={700}
+        height={500}
+        options={{ resizeTo: window }}
+      >
         <Viewport
+          ref={refViewport}
           screenWidth={window.innerWidth}
           screenHeight={window.innerHeight}
           worldWidth={WORLDWIDTH}
           worldHeight={WORLDHEIGHT}
         >
           <Rectangle
+            ref={refRectangle}
             x={0}
             y={0}
             width={window.innerWidth}

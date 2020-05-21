@@ -9,9 +9,9 @@ export const defaultMovieInfo = {
 };
 
 export interface MovieInfo {
-  frameCount: number;
-  width: number;
-  height: number;
+  frameCount?: number;
+  width?: number;
+  height?: number;
 }
 
 export const getMovieInfo = (filePath: string): MovieInfo => {
