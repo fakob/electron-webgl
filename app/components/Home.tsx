@@ -1,10 +1,11 @@
 /* eslint-disable no-console */
 import * as cv from 'opencv4nodejs';
-import { Stage, Sprite, useApp } from '@inlet/react-pixi';
+import { Stage, Sprite } from '@inlet/react-pixi';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactSlider from 'react-slider';
-import { Viewport, Rectangle, getGridPosition } from './Pixi';
+import { Viewport, Rectangle, getGridPositionArray } from './Pixi';
 import styles from './Home.css';
+import { GridPosition } from '../constants/interfaces';
 import {
   defaultMovieInfo,
   getMovieInfo,
@@ -34,6 +35,9 @@ export default function Home() {
   const refRectangle = useRef(null);
 
   const [base64Array, setBase64Array] = useState<Array<string>>([]);
+  const [gridPositionArray, setGridPositionArray] = useState<
+    Array<GridPosition>
+  >([]);
   const [amount, setAmount] = useState(20);
   const [columnCount, setColumnCount] = useState(3);
   const [movieInfo, setMovieInfo] = useState<MovieInfo>(defaultMovieInfo);
@@ -44,6 +48,23 @@ export default function Home() {
   useEffect(() => {
     console.log('viewport instance: ', refViewport.current);
   }, []);
+
+  // on change of columnCount, filePath, amount
+  useEffect(() => {
+    console.log(`useEffect: ${moviePath}, ${columnCount}, ${amount}`);
+    const { width = 0, height = 0 } = movieInfo;
+
+    setGridPositionArray(
+      getGridPositionArray(
+        columnCount,
+        window.innerWidth,
+        window.innerHeight,
+        width,
+        height,
+        base64Array.length
+      )
+    );
+  }, [moviePath, columnCount, amount]);
 
   const showVideo = (path: string) => {
     console.log(path);
@@ -82,6 +103,7 @@ export default function Home() {
   };
 
   const { width, height } = movieInfo;
+  console.log(gridPositionArray);
 
   return (
     <div
@@ -102,6 +124,7 @@ export default function Home() {
         trackClassName={styles.exampleTrack}
         defaultValue={20}
         onAfterChange={value => {
+          console.log(value);
           if (typeof value === 'number') {
             setAmount(value);
             showVideo(moviePath);
@@ -140,35 +163,29 @@ export default function Home() {
             height={window.innerHeight}
             fill={0x222222}
           />
-          {base64Array.map((base64, index) => {
-            const { x, y, scale } = getGridPosition(
-              columnCount,
-              window.innerWidth,
-              window.innerHeight,
-              width,
-              height,
-              base64Array.length,
-              index
-            );
-            return (
-              <Sprite
-                key={`img-${index}`}
-                alpha={hoverIndex === index ? 1 : 0.3}
-                image={base64}
-                scale={{ x: scale, y: scale }}
-                width={width * scale}
-                height={height * scale}
-                x={x}
-                y={y}
-                interactive
-                mouseover={e => {
-                  console.log(e);
-                  console.log(`index: ${index}`);
-                  setHoverIndex(index);
-                }}
-              />
-            );
-          })}
+          {gridPositionArray !== undefined &&
+            gridPositionArray.length === base64Array.length &&
+            base64Array.map((base64, index) => {
+              const { x = 0, y = 0, scale = 0 } = gridPositionArray[index];
+              return (
+                <Sprite
+                  key={`img-${index}`}
+                  alpha={hoverIndex === index ? 1 : 0.3}
+                  image={base64}
+                  scale={{ x: scale, y: scale }}
+                  width={width * scale}
+                  height={height * scale}
+                  x={x}
+                  y={y}
+                  interactive
+                  mouseover={e => {
+                    console.log(e);
+                    console.log(`index: ${index}`);
+                    setHoverIndex(index);
+                  }}
+                />
+              );
+            })}
         </Viewport>
       </Stage>
     </div>

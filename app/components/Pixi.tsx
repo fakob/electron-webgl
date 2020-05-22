@@ -2,14 +2,7 @@ import React from 'react';
 import { Graphics } from 'pixi.js';
 import { Viewport as PixiViewport } from 'pixi-viewport';
 import { PixiComponent, useApp } from '@inlet/react-pixi';
-
-interface Props {
-  children: React.ReactNode;
-  screenWidth: number;
-  screenHeight: number;
-  worldWidth: number;
-  worldHeight: number;
-}
+import { GridPosition, Props } from '../constants/interfaces';
 
 export const Viewport = (props: Props) => {
   const app = useApp();
@@ -92,10 +85,35 @@ export const getGridPosition = (
   const x = (index % columnCount) * scaledWidth;
   const y = Math.floor(index / columnCount) * scaledHeight;
 
-  console.log(`x: ${x}, y: ${y}, scale: ${scale}`);
+  console.log(`index: ${index}, x: ${x}, y: ${y}, scale: ${scale}`);
   return {
     x,
     y,
     scale
   };
+};
+
+export const getGridPositionArray = (
+  columnCount: number,
+  screenWidth: number,
+  screenHeight: number,
+  width: number,
+  height: number,
+  amount: number
+): Array<GridPosition> => {
+  const gridPositionArray: Array<GridPosition> = [];
+  for (let index = 0; index < amount; index += 1) {
+    gridPositionArray.push(
+      getGridPosition(
+        columnCount,
+        screenWidth,
+        screenHeight,
+        width,
+        height,
+        amount,
+        index
+      )
+    );
+  }
+  return gridPositionArray;
 };
