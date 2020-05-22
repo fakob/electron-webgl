@@ -38,6 +38,7 @@ export default function Home() {
   const [columnCount, setColumnCount] = useState(3);
   const [movieInfo, setMovieInfo] = useState<MovieInfo>(defaultMovieInfo);
   const [moviePath, setMoviePath] = useState('');
+  const [hoverIndex, setHoverIndex] = useState<number | undefined>(undefined);
 
   // on mount
   useEffect(() => {
@@ -152,12 +153,19 @@ export default function Home() {
             return (
               <Sprite
                 key={`img-${index}`}
+                alpha={hoverIndex === index ? 1 : 0.3}
                 image={base64}
                 scale={{ x: scale, y: scale }}
                 width={width * scale}
                 height={height * scale}
                 x={x}
                 y={y}
+                interactive
+                mouseover={e => {
+                  console.log(e);
+                  console.log(`index: ${index}`);
+                  setHoverIndex(index);
+                }}
               />
             );
           })}
