@@ -61,7 +61,7 @@ export const getThumbs = (
       const mat = vid.read();
       if (mat.empty === false) {
         // show image
-        console.log(mat);
+        // console.log(mat);
         // const matScaled = mat.resizeToMax(960);
         const outBase64 = cv.imencode('.jpg', mat).toString('base64'); // Perform base64 encoding
         base64Array.push(`data:image/jpeg;base64,${outBase64}`);

@@ -6,7 +6,7 @@ import { GridPosition, Props } from '../constants/interfaces';
 
 export const Viewport = (props: Props) => {
   const app = useApp();
-  console.log(app);
+  // console.log(app);
   return <PixiComponentViewport app={app} {...props} />;
 };
 
@@ -85,7 +85,7 @@ export const getGridPosition = (
   const x = (index % columnCount) * scaledWidth;
   const y = Math.floor(index / columnCount) * scaledHeight;
 
-  console.log(`index: ${index}, x: ${x}, y: ${y}, scale: ${scale}`);
+  // console.log(`index: ${index}, x: ${x}, y: ${y}, scale: ${scale}`);
   return {
     x,
     y,

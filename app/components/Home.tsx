@@ -49,38 +49,39 @@ export default function Home() {
     console.log('viewport instance: ', refViewport.current);
   }, []);
 
-  // on change of columnCount, filePath, amount
-  useEffect(() => {
-    console.log(`useEffect: ${moviePath}, ${columnCount}, ${amount}`);
-    const { width = 0, height = 0 } = movieInfo;
-
+  const calculateAndSetGridPositions = (
+    thisColumnCount: number,
+    thisAmount: number,
+    thisMovieInfo: MovieInfo
+  ) => {
+    const { width = 0, height = 0 } = thisMovieInfo;
     setGridPositionArray(
       getGridPositionArray(
-        columnCount,
+        thisColumnCount,
         window.innerWidth,
         window.innerHeight,
         width,
         height,
-        base64Array.length
+        thisAmount
       )
     );
-  }, [moviePath, columnCount, amount]);
+  };
 
   const showVideo = (path: string) => {
     console.log(path);
     setMoviePath(path);
 
-    const { frameCount } = movieInfo;
-
-    setMovieInfo(getMovieInfo(path));
+    const newMovieInfo = getMovieInfo(path);
+    const { frameCount = 0 } = newMovieInfo;
+    setMovieInfo(newMovieInfo);
     const frameNumberArray = Array.from(Array(amount).keys()).map(x =>
-      mapRange(x, 0, amount - 1, 0, frameCount, true)
+      mapRange(x, 0, amount - 1, 0, frameCount - 1, true)
     );
 
     const tempArray: string[] = getThumbs(path, frameNumberArray);
-    console.log(tempArray);
 
     setBase64Array(tempArray);
+    calculateAndSetGridPositions(columnCount, amount, newMovieInfo);
   };
 
   const openFile = () => {
@@ -103,7 +104,7 @@ export default function Home() {
   };
 
   const { width, height } = movieInfo;
-  console.log(gridPositionArray);
+  // console.log(gridPositionArray);
 
   return (
     <div
@@ -128,6 +129,7 @@ export default function Home() {
           if (typeof value === 'number') {
             setAmount(value);
             showVideo(moviePath);
+            calculateAndSetGridPositions(columnCount, value, movieInfo);
           }
         }}
       />
@@ -139,6 +141,7 @@ export default function Home() {
         onChange={value => {
           if (typeof value === 'number') {
             setColumnCount(value);
+            calculateAndSetGridPositions(value, amount, movieInfo);
           }
         }}
       />
@@ -179,8 +182,8 @@ export default function Home() {
                   y={y}
                   interactive
                   mouseover={e => {
-                    console.log(e);
-                    console.log(`index: ${index}`);
+                    // console.log(e);
+                    // console.log(`index: ${index}`);
                     setHoverIndex(index);
                   }}
                 />
