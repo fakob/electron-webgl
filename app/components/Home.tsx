@@ -138,6 +138,7 @@ export default function Home() {
         thumbClassName={styles.exampleThumb}
         trackClassName={styles.exampleTrack}
         defaultValue={20}
+        min={1}
         onChange={value => {
           if (typeof value === 'number') {
             setColumnCount(value);
@@ -173,7 +174,7 @@ export default function Home() {
               return (
                 <Sprite
                   key={`img-${index}`}
-                  alpha={hoverIndex === index ? 1 : 0.3}
+                  alpha={hoverIndex !== index ? 1 : 0.3}
                   image={base64}
                   scale={{ x: scale, y: scale }}
                   width={width * scale}
