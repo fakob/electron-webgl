@@ -48,16 +48,24 @@ export default merge.smart(baseConfig, {
 
   target: 'electron-renderer',
 
-  entry: [
-    ...(process.env.PLAIN_HMR ? [] : ['react-hot-loader/patch']),
-    `webpack-dev-server/client?http://localhost:${port}/`,
-    'webpack/hot/only-dev-server',
-    require.resolve('../app/index.tsx')
-  ],
+  entry: {
+    renderer: [
+      ...(process.env.PLAIN_HMR ? [] : ['react-hot-loader/patch']),
+      `webpack-dev-server/client?http://localhost:${port}/`,
+      'webpack/hot/only-dev-server',
+      require.resolve('../app/index.tsx')
+    ],
+    worker_opencv: [
+      ...(process.env.PLAIN_HMR ? [] : ['react-hot-loader/patch']),
+      `webpack-dev-server/client?http://localhost:${port}/`,
+      'webpack/hot/only-dev-server',
+      require.resolve('../app/worker_opencv.tsx')
+    ]
+  },
 
   output: {
     publicPath: `http://localhost:${port}/dist/`,
-    filename: 'renderer.dev.js'
+    filename: '[name].dev.js'
   },
 
   module: {

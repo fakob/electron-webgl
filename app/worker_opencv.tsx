@@ -1,6 +1,8 @@
+import { ipcRenderer } from 'electron';
 import * as cv from 'opencv4nodejs';
+import log from 'electron-log';
 
-import { VideoCaptureProperties } from '../constants/openCVProperties';
+import { VideoCaptureProperties } from './constants/openCVProperties';
 
 export const defaultMovieInfo = {
   frameCount: 0,
@@ -89,3 +91,16 @@ export const getThumbs = (
   }
   return base64Array;
 };
+
+ipcRenderer.on('get-file-details', (event, filePath) => {
+  log.debug('opencvWorkerWindow | on send-get-file-details');
+  // log.debug(fileId);
+  log.debug(`opencvWorkerWindow | ${filePath}`);
+  const movieInfo = getMovieInfo(filePath);
+  console.log(movieInfo);
+  ipcRenderer.send(
+    'message-from-opencvWorkerWindow-to-mainWindow',
+    'receive-file-details',
+    movieInfo
+  );
+});

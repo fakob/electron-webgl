@@ -9,7 +9,7 @@
  * `./app/main.prod.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
@@ -22,7 +22,10 @@ export default class AppUpdater {
   }
 }
 
+log.info(process.versions);
+
 let mainWindow: BrowserWindow | null = null;
+let opencvWorkerWindow: BrowserWindow | null = null;
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
@@ -88,7 +91,39 @@ const createWindow = async () => {
     mainWindow = null;
   });
 
-  const menuBuilder = new MenuBuilder(mainWindow);
+  // opencvWorkerWindow
+  opencvWorkerWindow = new BrowserWindow({
+    webPreferences: {
+      nodeIntegration: true
+    }
+  });
+  opencvWorkerWindow.hide();
+  // opencvWorkerWindow.webContents.openDevTools();
+  opencvWorkerWindow.loadURL(`file://${__dirname}/worker_opencv.html`);
+
+  opencvWorkerWindow.on('close', event => {
+    // only hide window and prevent default if app not quitting
+    opencvWorkerWindow.hide();
+    event.preventDefault();
+  });
+
+  opencvWorkerWindow.webContents.on('did-finish-load', () => {
+    if (!opencvWorkerWindow) {
+      throw new Error('"opencvWorkerWindow" is not defined');
+    }
+    if (process.env.START_MINIMIZED) {
+      opencvWorkerWindow.minimize();
+    } else {
+      opencvWorkerWindow.show();
+      opencvWorkerWindow.focus();
+    }
+  });
+
+  opencvWorkerWindow.on('closed', () => {
+    opencvWorkerWindow = null;
+  });
+
+  const menuBuilder = new MenuBuilder(mainWindow, opencvWorkerWindow);
   menuBuilder.buildMenu();
 
   // Remove this if your app does not use auto updates
@@ -115,3 +150,30 @@ app.on('activate', () => {
   // dock icon is clicked and there are no other windows open.
   if (mainWindow === null) createWindow();
 });
+
+// ipcMain.handle('some-name', async (event, someArgument) => {
+//   const result = await doSomeWork(someArgument);
+//   return result;
+// });
+
+ipcMain.on(
+  'message-from-mainWindow-to-opencvWorkerWindow',
+  (e, ipcName, ...args) => {
+    log.debug(
+      `mainThread | passing ${ipcName} from mainWindow to opencvWorkerWindow`
+    );
+    log.debug(...args);
+    opencvWorkerWindow.webContents.send(ipcName, ...args);
+  }
+);
+
+ipcMain.on(
+  'message-from-opencvWorkerWindow-to-mainWindow',
+  (e, ipcName, ...args) => {
+    log.debug(
+      `mainThread | passing ${ipcName} from opencvWorkerWindow to mainWindow`
+    );
+    log.debug(...args);
+    mainWindow.webContents.send(ipcName, ...args);
+  }
+);

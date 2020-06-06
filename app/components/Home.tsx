@@ -1,5 +1,8 @@
 /* eslint-disable no-console */
+import { ipcRenderer } from 'electron';
 import * as cv from 'opencv4nodejs';
+import { fromEvent } from 'rxjs';
+import { first } from 'rxjs/operators';
 import { Stage, Sprite } from '@inlet/react-pixi';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactSlider from 'react-slider';
@@ -12,7 +15,7 @@ import {
   getThumbs,
   mapRange,
   MovieInfo
-} from './OpencvWorker';
+} from '../worker_opencv';
 import {
   // SCREENWIDTH,
   // SCREENHEIGHT,
@@ -96,11 +99,27 @@ export default function Home() {
       .catch(err => console.error(err));
   };
 
-  const onFitClick = () => {
+  const onFitClick = async () => {
     console.log(refStage.current);
     console.log(refViewport.current);
     console.log(refRectangle.current);
     // PixiComponentViewport.moveCenter(0, 0);
+
+    const ipcFromOpencvWorkerObservable = fromEvent(
+      ipcRenderer,
+      'receive-file-details'
+    );
+
+    ipcRenderer.send(
+      'message-from-mainWindow-to-opencvWorkerWindow',
+      'get-file-details',
+      moviePath
+    );
+    console.log(ipcFromOpencvWorkerObservable);
+    const result = await ipcFromOpencvWorkerObservable
+      .pipe(first())
+      .toPromise();
+    console.log(result);
   };
 
   const { width, height } = movieInfo;
