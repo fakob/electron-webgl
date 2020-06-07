@@ -115,5 +115,6 @@ export const getGridPositionArray = (
       )
     );
   }
+  // console.log(gridPositionArray);
   return gridPositionArray;
 };

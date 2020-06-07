@@ -162,7 +162,7 @@ ipcMain.on(
     log.debug(
       `mainThread | passing ${ipcName} from mainWindow to opencvWorkerWindow`
     );
-    log.debug(...args);
+    // log.debug(...args);
     opencvWorkerWindow.webContents.send(ipcName, ...args);
   }
 );
@@ -173,7 +173,7 @@ ipcMain.on(
     log.debug(
       `mainThread | passing ${ipcName} from opencvWorkerWindow to mainWindow`
     );
-    log.debug(...args);
+    // log.debug(...args);
     mainWindow.webContents.send(ipcName, ...args);
   }
 );

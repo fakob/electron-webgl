@@ -53,10 +53,11 @@ export const mapRange = (value, low1, high1, low2, high2, returnInt = true) => {
 export const getThumbs = (
   filePath: string,
   frameNumberArray: number[]
-): string[] => {
-  const base64Array: string[] = [];
+): void => {
+  // const base64Array: string[] = [];
   try {
     const vid = new cv.VideoCapture(filePath);
+    vid.read();
 
     frameNumberArray.map(frameNumber => {
       vid.set(VideoCaptureProperties.CAP_PROP_POS_FRAMES, frameNumber);
@@ -66,7 +67,14 @@ export const getThumbs = (
         // console.log(mat);
         // const matScaled = mat.resizeToMax(960);
         const outBase64 = cv.imencode('.jpg', mat).toString('base64'); // Perform base64 encoding
-        base64Array.push(`data:image/jpeg;base64,${outBase64}`);
+        // base64Array.push(`data:image/jpeg;base64,${outBase64}`);
+        const outBase64String = `data:image/jpeg;base64,${outBase64}`;
+        ipcRenderer.send(
+          'message-from-opencvWorkerWindow-to-mainWindow',
+          'receive-thumb',
+          frameNumber,
+          outBase64String
+        );
       } else {
         console.log('opencvWorkerWindow | frame is empty');
       }
@@ -89,18 +97,30 @@ export const getThumbs = (
   } catch (e) {
     console.error(e);
   }
-  return base64Array;
+  ipcRenderer.send(
+    'message-from-opencvWorkerWindow-to-mainWindow',
+    'receive-thumbs-done'
+  );
+  return undefined;
 };
 
-ipcRenderer.on('get-file-details', (event, filePath) => {
-  log.debug('opencvWorkerWindow | on send-get-file-details');
+ipcRenderer.on('get-file-details', (event, path) => {
+  log.debug('opencvWorkerWindow | on get-file-details');
   // log.debug(fileId);
-  log.debug(`opencvWorkerWindow | ${filePath}`);
-  const movieInfo = getMovieInfo(filePath);
+  log.debug(`opencvWorkerWindow | ${path}`);
+  const movieInfo = getMovieInfo(path);
   console.log(movieInfo);
   ipcRenderer.send(
     'message-from-opencvWorkerWindow-to-mainWindow',
     'receive-file-details',
     movieInfo
   );
+});
+
+ipcRenderer.on('get-thumbs', (event, path, frameNumberArray) => {
+  log.debug('opencvWorkerWindow | on get-thumbs');
+  // log.debug(fileId);
+  log.debug(`opencvWorkerWindow | ${path}`);
+  getThumbs(path, frameNumberArray);
+  // console.log(base64Array);
 });

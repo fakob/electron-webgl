@@ -1,8 +1,9 @@
 /* eslint-disable no-console */
 import { ipcRenderer } from 'electron';
+import log from 'electron-log';
 import * as cv from 'opencv4nodejs';
-import { fromEvent } from 'rxjs';
-import { first } from 'rxjs/operators';
+import { fromEvent, Observable, fromEventPattern } from 'rxjs';
+import { first, takeUntil, tap } from 'rxjs/operators';
 import { Stage, Sprite } from '@inlet/react-pixi';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactSlider from 'react-slider';
@@ -12,7 +13,6 @@ import { GridPosition } from '../constants/interfaces';
 import {
   defaultMovieInfo,
   getMovieInfo,
-  getThumbs,
   mapRange,
   MovieInfo
 } from '../worker_opencv';
@@ -32,6 +32,15 @@ console.log(`ffmpeg version (manually entered): 3.4.2`);
 
 console.log(Viewport);
 
+const doneReceivingThumbs$ = fromEvent(ipcRenderer, 'receive-thumbs-done').pipe(
+  tap(() => console.log(`doneReceivingThumbs`))
+);
+
+const receiveThumb$ = fromEvent(ipcRenderer, 'receive-thumb').pipe(
+  tap(() => console.log(`receiveThumb`)),
+  takeUntil(doneReceivingThumbs$)
+);
+
 export default function Home() {
   const refStage = useRef(null);
   const refViewport = useRef(null);
@@ -46,11 +55,6 @@ export default function Home() {
   const [movieInfo, setMovieInfo] = useState<MovieInfo>(defaultMovieInfo);
   const [moviePath, setMoviePath] = useState('');
   const [hoverIndex, setHoverIndex] = useState<number | undefined>(undefined);
-
-  // on mount
-  useEffect(() => {
-    console.log('viewport instance: ', refViewport.current);
-  }, []);
 
   const calculateAndSetGridPositions = (
     thisColumnCount: number,
@@ -70,22 +74,56 @@ export default function Home() {
     );
   };
 
-  const showVideo = (path: string) => {
-    console.log(path);
-    setMoviePath(path);
+  // on mount
+  useEffect(() => {
+    console.log('viewport instance: ', refViewport.current);
+  }, []);
 
-    const newMovieInfo = getMovieInfo(path);
+  // on base64Array change
+  useEffect(() => {
+    calculateAndSetGridPositions(columnCount, base64Array.length, movieInfo);
+  }, [base64Array.length, amount, columnCount]);
+
+  // on path and amount change
+  useEffect(() => {
+    console.log(moviePath);
+
+    const newMovieInfo = getMovieInfo(moviePath);
     const { frameCount = 0 } = newMovieInfo;
     setMovieInfo(newMovieInfo);
     const frameNumberArray = Array.from(Array(amount).keys()).map(x =>
       mapRange(x, 0, amount - 1, 0, frameCount - 1, true)
     );
 
-    const tempArray: string[] = getThumbs(path, frameNumberArray);
+    const receiveThumb = receiveThumb$.subscribe(
+      result => {
+        // console.log('Clicked!');
+        const [_, frameNumber, base64OfThumb] = result;
+        console.log(frameNumber);
+        // console.log(base64OfThumb);
+        console.log(base64Array.length);
+        // add new thumb to array
+        setBase64Array(previousArray => [...previousArray, base64OfThumb]);
+      },
+      err => console.error('Observer got an error: ', err),
+      () => console.log('Observer got a complete notification')
+    );
 
-    setBase64Array(tempArray);
-    calculateAndSetGridPositions(columnCount, amount, newMovieInfo);
-  };
+    // ipcRenderer.on('receive-thumbs-done', event => {
+    //   log.debug('mainWindow | on receive-thumbs-done');
+    //   console.log(receiveThumb);
+    //   // receiveThumb.unsubscribe();
+    // });
+
+    ipcRenderer.send(
+      'message-from-mainWindow-to-opencvWorkerWindow',
+      'get-thumbs',
+      moviePath,
+      frameNumberArray
+    );
+
+    return () => receiveThumb.unsubscribe();
+  }, [moviePath, amount]);
 
   const openFile = () => {
     dialog
@@ -93,7 +131,7 @@ export default function Home() {
       .then(fileObject => {
         const { filePaths } = fileObject;
         console.log(filePaths[0]);
-        showVideo(filePaths[0]);
+        setMoviePath(filePaths[0]);
         return undefined;
       })
       .catch(err => console.error(err));
@@ -105,7 +143,7 @@ export default function Home() {
     console.log(refRectangle.current);
     // PixiComponentViewport.moveCenter(0, 0);
 
-    const ipcFromOpencvWorkerObservable = fromEvent(
+    const receiveFileDetailsObservable = fromEvent(
       ipcRenderer,
       'receive-file-details'
     );
@@ -115,10 +153,8 @@ export default function Home() {
       'get-file-details',
       moviePath
     );
-    console.log(ipcFromOpencvWorkerObservable);
-    const result = await ipcFromOpencvWorkerObservable
-      .pipe(first())
-      .toPromise();
+    console.log(receiveFileDetailsObservable);
+    const result = await receiveFileDetailsObservable.pipe(first()).toPromise();
     console.log(result);
   };
 
@@ -142,13 +178,14 @@ export default function Home() {
         className={styles.horizontalSlider}
         thumbClassName={styles.exampleThumb}
         trackClassName={styles.exampleTrack}
+        renderThumb={(props, state) => <div {...props}>{state.valueNow}</div>}
         defaultValue={20}
         onAfterChange={value => {
           console.log(value);
           if (typeof value === 'number') {
+            setBase64Array([]);
             setAmount(value);
-            showVideo(moviePath);
-            calculateAndSetGridPositions(columnCount, value, movieInfo);
+            // calculateAndSetGridPositions(columnCount, value, movieInfo);
           }
         }}
       />
@@ -156,6 +193,7 @@ export default function Home() {
         className={styles.horizontalSlider}
         thumbClassName={styles.exampleThumb}
         trackClassName={styles.exampleTrack}
+        renderThumb={(props, state) => <div {...props}>{state.valueNow}</div>}
         defaultValue={20}
         min={1}
         onChange={value => {
