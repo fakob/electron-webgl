@@ -11,3 +11,14 @@ export interface Props {
   worldWidth: number;
   worldHeight: number;
 }
+
+export interface Thumb {
+  base64: string;
+  frameNumber: number;
+}
+
+export interface ThumbOptionOverlay {
+  show: boolean;
+  frameNumber?: number;
+  gridPosition?: GridPosition;
+}

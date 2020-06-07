@@ -70,3 +70,10 @@
   left: 20px;
   width: 10px;
 }
+
+.thumbOptions {
+  position: absolut;
+  padding: 20px;
+  background-color: #f00;
+  color: aliceblue;
+}

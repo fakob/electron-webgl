@@ -1,5 +1,5 @@
 import React from 'react';
-import { Graphics } from 'pixi.js';
+import { Graphics, Text } from 'pixi.js';
 import { Viewport as PixiViewport } from 'pixi-viewport';
 import { PixiComponent, useApp } from '@inlet/react-pixi';
 import { GridPosition, Props } from '../constants/interfaces';
@@ -61,12 +61,36 @@ const PixiComponentViewport = PixiComponent('Viewport', {
 
 export const Rectangle = PixiComponent('Rectangle', {
   create: props => new Graphics(),
-  applyProps: (instance, _, props) => {
+  applyProps: (instance, oldProps, props) => {
     const { x, y, width, height, fill } = props;
-    instance.clear();
-    instance.beginFill(fill);
-    instance.drawRect(x, y, width, height);
-    instance.endFill();
+    if (
+      x !== oldProps.x ||
+      y !== oldProps.y ||
+      width !== oldProps.width ||
+      height !== oldProps.height ||
+      fill !== oldProps.fill
+    ) {
+      instance.clear();
+      instance.beginFill(fill);
+      instance.drawRect(x, y, width, height);
+      instance.endFill();
+    }
+  }
+});
+
+export const FastText = PixiComponent('FastText', {
+  create: props => new Text(props.text),
+  applyProps: (instance, oldProps, props) => {
+    const { x, y, text } = props;
+
+    if (x !== oldProps.x || y !== oldProps.y) {
+      instance.x = x;
+      instance.y = y;
+    }
+
+    if (text !== oldProps.text) {
+      instance.text = text;
+    }
   }
 });
 

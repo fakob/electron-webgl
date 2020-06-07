@@ -2,14 +2,19 @@
 import { ipcRenderer } from 'electron';
 import log from 'electron-log';
 import * as cv from 'opencv4nodejs';
-import { fromEvent, Observable, fromEventPattern } from 'rxjs';
-import { first, takeUntil, tap } from 'rxjs/operators';
-import { Stage, Sprite } from '@inlet/react-pixi';
+import { fromEvent, animationFrameScheduler } from 'rxjs';
+import { first, takeUntil, tap, bufferTime } from 'rxjs/operators';
+import * as PIXI from 'pixi.js';
+import { Stage, Sprite, Text } from '@inlet/react-pixi';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactSlider from 'react-slider';
-import { Viewport, Rectangle, getGridPositionArray } from './Pixi';
+import { Viewport, Rectangle, FastText, getGridPositionArray } from './Pixi';
 import styles from './Home.css';
-import { GridPosition } from '../constants/interfaces';
+import {
+  GridPosition,
+  Thumb,
+  ThumbOptionOverlay
+} from '../constants/interfaces';
 import {
   defaultMovieInfo,
   getMovieInfo,
@@ -38,6 +43,8 @@ const doneReceivingThumbs$ = fromEvent(ipcRenderer, 'receive-thumbs-done').pipe(
 
 const receiveThumb$ = fromEvent(ipcRenderer, 'receive-thumb').pipe(
   tap(() => console.log(`receiveThumb`)),
+  // bufferCount(5),
+  bufferTime(200, animationFrameScheduler),
   takeUntil(doneReceivingThumbs$)
 );
 
@@ -46,7 +53,7 @@ export default function Home() {
   const refViewport = useRef(null);
   const refRectangle = useRef(null);
 
-  const [base64Array, setBase64Array] = useState<Array<string>>([]);
+  const [thumbArray, setThumbArray] = useState<Array<Thumb>>([]);
   const [gridPositionArray, setGridPositionArray] = useState<
     Array<GridPosition>
   >([]);
@@ -55,6 +62,10 @@ export default function Home() {
   const [movieInfo, setMovieInfo] = useState<MovieInfo>(defaultMovieInfo);
   const [moviePath, setMoviePath] = useState('');
   const [hoverIndex, setHoverIndex] = useState<number | undefined>(undefined);
+  const [textSize, setTextSize] = useState(20);
+  const [thumbOptions, setThumbOptions] = useState<ThumbOptionOverlay>({
+    show: false
+  });
 
   const calculateAndSetGridPositions = (
     thisColumnCount: number,
@@ -79,10 +90,10 @@ export default function Home() {
     console.log('viewport instance: ', refViewport.current);
   }, []);
 
-  // on base64Array change
+  // on thumbArray change
   useEffect(() => {
-    calculateAndSetGridPositions(columnCount, base64Array.length, movieInfo);
-  }, [base64Array.length, amount, columnCount]);
+    calculateAndSetGridPositions(columnCount, thumbArray.length, movieInfo);
+  }, [thumbArray.length, amount, columnCount]);
 
   // on path and amount change
   useEffect(() => {
@@ -97,13 +108,22 @@ export default function Home() {
 
     const receiveThumb = receiveThumb$.subscribe(
       result => {
-        // console.log('Clicked!');
-        const [_, frameNumber, base64OfThumb] = result;
-        console.log(frameNumber);
+        console.log(result);
+        const receivedThumbArray = result.map(item => {
+          const [_, frameNumber, base64OfThumb] = item;
+          console.log(frameNumber);
+          return {
+            base64: base64OfThumb,
+            frameNumber
+          };
+        });
         // console.log(base64OfThumb);
-        console.log(base64Array.length);
+        console.log(thumbArray.length);
         // add new thumb to array
-        setBase64Array(previousArray => [...previousArray, base64OfThumb]);
+        setThumbArray(previousArray => [
+          ...previousArray,
+          ...receivedThumbArray
+        ]);
       },
       err => console.error('Observer got an error: ', err),
       () => console.log('Observer got a complete notification')
@@ -131,6 +151,7 @@ export default function Home() {
       .then(fileObject => {
         const { filePaths } = fileObject;
         console.log(filePaths[0]);
+        setThumbArray([]);
         setMoviePath(filePaths[0]);
         return undefined;
       })
@@ -166,6 +187,18 @@ export default function Home() {
       //  className={styles.container}
       data-tid="container"
     >
+      {thumbOptions.show && (
+        <div
+          className={styles.thumbOptions}
+          style={{
+            position: 'absolute',
+            left: thumbOptions.gridPosition?.x,
+            top: thumbOptions.gridPosition?.y
+          }}
+        >
+          {thumbOptions.frameNumber}
+        </div>
+      )}
       <h2>Home</h2>
       <br />
       <button type="button" onClick={onFitClick}>
@@ -180,12 +213,12 @@ export default function Home() {
         trackClassName={styles.exampleTrack}
         renderThumb={(props, state) => <div {...props}>{state.valueNow}</div>}
         defaultValue={20}
+        max={1000}
         onAfterChange={value => {
           console.log(value);
           if (typeof value === 'number') {
-            setBase64Array([]);
+            setThumbArray([]);
             setAmount(value);
-            // calculateAndSetGridPositions(columnCount, value, movieInfo);
           }
         }}
       />
@@ -203,14 +236,32 @@ export default function Home() {
           }
         }}
       />
+      <ReactSlider
+        className={styles.horizontalSlider}
+        thumbClassName={styles.exampleThumb}
+        trackClassName={styles.exampleTrack}
+        renderThumb={(props, state) => <div {...props}>{state.valueNow}</div>}
+        defaultValue={20}
+        min={1}
+        onChange={value => {
+          if (typeof value === 'number') {
+            setTextSize(value);
+          }
+        }}
+      />
       <Stage
         ref={refStage}
         width={700}
         height={500}
         options={{ resizeTo: window }}
+        // onMouseMove={e => {
+        //   console.log(e.target);
+        //   // console.log(`index: ${index}`);
+        //   // setHoverIndex(index);
+        // }}
       >
         <Viewport
-          ref={refViewport}
+          // ref={refViewport}
           screenWidth={window.innerWidth}
           screenHeight={window.innerHeight}
           worldWidth={WORLDWIDTH}
@@ -225,26 +276,78 @@ export default function Home() {
             fill={0x222222}
           />
           {gridPositionArray !== undefined &&
-            gridPositionArray.length === base64Array.length &&
-            base64Array.map((base64, index) => {
+            gridPositionArray.length === thumbArray.length &&
+            thumbArray.map(({ base64, frameNumber }, index) => {
               const { x = 0, y = 0, scale = 0 } = gridPositionArray[index];
               return (
-                <Sprite
-                  key={`img-${index}`}
-                  alpha={hoverIndex !== index ? 1 : 0.3}
-                  image={base64}
-                  scale={{ x: scale, y: scale }}
-                  width={width * scale}
-                  height={height * scale}
-                  x={x}
-                  y={y}
-                  interactive
-                  mouseover={e => {
-                    // console.log(e);
-                    // console.log(`index: ${index}`);
-                    setHoverIndex(index);
-                  }}
-                />
+                <>
+                  <Sprite
+                    key={frameNumber}
+                    alpha={hoverIndex !== index ? 1 : 0.3}
+                    image={base64}
+                    scale={{ x: scale, y: scale }}
+                    width={width * scale}
+                    height={height * scale}
+                    x={x}
+                    y={y}
+                    interactive
+                    click={e => {
+                      console.log(e);
+                      console.log(e.data);
+                      console.log(e.data.global);
+                      // console.log(`index: ${index}`);
+                      setThumbOptions({
+                        show: !thumbOptions.show,
+                        frameNumber,
+                        gridPosition: gridPositionArray[index]
+                      });
+                    }}
+                    mouseover={e => {
+                      // console.log(e);
+                      // console.log(`index: ${index}`);
+                      setHoverIndex(index);
+                    }}
+                  />
+                  <Rectangle
+                    ref={refRectangle}
+                    x={x}
+                    y={y}
+                    width={(width * scale) / 4}
+                    height={(height * scale) / 4}
+                    fill={0x00ff00}
+                    mouseover={e => {
+                      console.log(e);
+                      // console.log(`index: ${index}`);
+                      // setHoverIndex(index);
+                    }}
+                  />
+                  <Text
+                    text={frameNumber.toString()}
+                    // anchor={0.5}
+                    x={x}
+                    y={y}
+                    style={
+                      new PIXI.TextStyle({
+                        align: 'left',
+                        fontFamily: 'sans-serif',
+                        fontSize: textSize * scale,
+                        fontWeight: '300',
+                        fill: '0xff0000'
+                        // fill: ['#ffffff', '#00ff99'], // gradient
+                        // stroke: '#01d27e',
+                        // strokeThickness: 5,
+                        // letterSpacing: 20,
+                        // dropShadow: true,
+                        // dropShadowColor: '#ccced2',
+                        // dropShadowBlur: 4,
+                        // dropShadowAngle: Math.PI / 6,
+                        // dropShadowDistance: 6,
+                        // wordWrap: true,
+                        // wordWrapWidth: 440
+                      })
+                    }
+                  />
+                </>
               );
             })}
         </Viewport>
