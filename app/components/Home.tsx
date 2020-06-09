@@ -3,7 +3,7 @@ import { ipcRenderer } from 'electron';
 import log from 'electron-log';
 import * as cv from 'opencv4nodejs';
 import { fromEvent, animationFrameScheduler } from 'rxjs';
-import { first, takeUntil, tap, bufferTime } from 'rxjs/operators';
+import { first, takeUntil, tap, bufferTime, delay } from 'rxjs/operators';
 import * as PIXI from 'pixi.js';
 import { Stage, Sprite, Text } from '@inlet/react-pixi';
 import React, { useEffect, useRef, useState } from 'react';
@@ -38,7 +38,8 @@ console.log(`ffmpeg version (manually entered): 3.4.2`);
 console.log(Viewport);
 
 const doneReceivingThumbs$ = fromEvent(ipcRenderer, 'receive-thumbs-done').pipe(
-  tap(() => console.log(`doneReceivingThumbs`))
+  tap(() => console.log(`doneReceivingThumbs`)),
+  delay(1000)
 );
 
 const receiveThumb$ = fromEvent(ipcRenderer, 'receive-thumb').pipe(
@@ -102,47 +103,67 @@ export default function Home() {
     const newMovieInfo = getMovieInfo(moviePath);
     const { frameCount = 0 } = newMovieInfo;
     setMovieInfo(newMovieInfo);
-    const frameNumberArray = Array.from(Array(amount).keys()).map(x =>
-      mapRange(x, 0, amount - 1, 0, frameCount - 1, true)
-    );
+    if (frameCount !== 0) {
+      const frameNumberArray = Array.from(Array(amount).keys()).map(x =>
+        mapRange(x, 0, amount - 1, 0, frameCount - 1, true)
+      );
+      const emptyThumbArray = frameNumberArray.map(item => {
+        return {
+          frameNumber: item,
+          base64: 'data:image/jpeg;base64,'
+        };
+      });
+      setThumbArray(emptyThumbArray);
 
-    const receiveThumb = receiveThumb$.subscribe(
-      result => {
-        console.log(result);
-        const receivedThumbArray = result.map(item => {
-          const [_, frameNumber, base64OfThumb] = item;
-          console.log(frameNumber);
-          return {
-            base64: base64OfThumb,
-            frameNumber
-          };
-        });
-        // console.log(base64OfThumb);
-        console.log(thumbArray.length);
-        // add new thumb to array
-        setThumbArray(previousArray => [
-          ...previousArray,
-          ...receivedThumbArray
-        ]);
-      },
-      err => console.error('Observer got an error: ', err),
-      () => console.log('Observer got a complete notification')
-    );
+      const receiveThumb = receiveThumb$.subscribe(
+        result => {
+          console.log(result);
+          const receivedThumbArray = result.map(item => {
+            const [_, frameNumber, base64OfThumb] = item;
+            console.log(frameNumber);
+            return {
+              base64: base64OfThumb,
+              frameNumber
+            };
+          });
+          setThumbArray(previousArray => {
+            const newArray = previousArray.map(thumb => {
+              const thumbIndex = receivedThumbArray.findIndex(item => {
+                return item.frameNumber === thumb.frameNumber;
+              });
+              if (thumbIndex < 0) {
+                return thumb;
+              }
+              return receivedThumbArray[thumbIndex];
+            });
+            // console.log(base64OfThumb);
+            // console.log(thumbArray.length);
+            // add new thumb to array
+            console.log(thumbArray);
+            console.log(receivedThumbArray);
+            console.log(newArray);
+            return newArray;
+          });
+          // setThumbArray(newArray);
+        },
+        err => console.error('Observer got an error: ', err),
+        () => console.log('Observer got a complete notification')
+      );
 
-    // ipcRenderer.on('receive-thumbs-done', event => {
-    //   log.debug('mainWindow | on receive-thumbs-done');
-    //   console.log(receiveThumb);
-    //   // receiveThumb.unsubscribe();
-    // });
+      // ipcRenderer.on('receive-thumbs-done', event => {
+      //   log.debug('mainWindow | on receive-thumbs-done');
+      //   console.log(receiveThumb);
+      //   // receiveThumb.unsubscribe();
+      // });
 
-    ipcRenderer.send(
-      'message-from-mainWindow-to-opencvWorkerWindow',
-      'get-thumbs',
-      moviePath,
-      frameNumberArray
-    );
-
-    return () => receiveThumb.unsubscribe();
+      ipcRenderer.send(
+        'message-from-mainWindow-to-opencvWorkerWindow',
+        'get-thumbs',
+        moviePath,
+        frameNumberArray
+      );
+      return () => receiveThumb.unsubscribe();
+    }
   }, [moviePath, amount]);
 
   const openFile = () => {
@@ -277,7 +298,7 @@ export default function Home() {
           />
           {gridPositionArray !== undefined &&
             gridPositionArray.length === thumbArray.length &&
-            thumbArray.map(({ base64, frameNumber }, index) => {
+            thumbArray.map(({ base64 = undefined, frameNumber }, index) => {
               const { x = 0, y = 0, scale = 0 } = gridPositionArray[index];
               return (
                 <>
