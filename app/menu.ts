@@ -15,8 +15,11 @@ interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
 export default class MenuBuilder {
   mainWindow: BrowserWindow;
 
-  constructor(mainWindow: BrowserWindow) {
+  opencvWorkerWindow: BrowserWindow;
+
+  constructor(mainWindow: BrowserWindow, opencvWorkerWindow: BrowserWindow) {
     this.mainWindow = mainWindow;
+    this.opencvWorkerWindow = opencvWorkerWindow;
   }
 
   buildMenu() {
@@ -74,7 +77,10 @@ export default class MenuBuilder {
           accelerator: 'Command+Shift+H',
           selector: 'hideOtherApplications:'
         },
-        { label: 'Show All', selector: 'unhideAllApplications:' },
+        {
+          label: 'Show All',
+          selector: 'unhideAllApplications:'
+        },
         { type: 'separator' },
         {
           label: 'Quit',
@@ -88,12 +94,32 @@ export default class MenuBuilder {
     const subMenuEdit: DarwinMenuItemConstructorOptions = {
       label: 'Edit',
       submenu: [
-        { label: 'Undo', accelerator: 'Command+Z', selector: 'undo:' },
-        { label: 'Redo', accelerator: 'Shift+Command+Z', selector: 'redo:' },
+        {
+          label: 'Undo',
+          accelerator: 'Command+Z',
+          selector: 'undo:'
+        },
+        {
+          label: 'Redo',
+          accelerator: 'Shift+Command+Z',
+          selector: 'redo:'
+        },
         { type: 'separator' },
-        { label: 'Cut', accelerator: 'Command+X', selector: 'cut:' },
-        { label: 'Copy', accelerator: 'Command+C', selector: 'copy:' },
-        { label: 'Paste', accelerator: 'Command+V', selector: 'paste:' },
+        {
+          label: 'Cut',
+          accelerator: 'Command+X',
+          selector: 'cut:'
+        },
+        {
+          label: 'Copy',
+          accelerator: 'Command+C',
+          selector: 'copy:'
+        },
+        {
+          label: 'Paste',
+          accelerator: 'Command+V',
+          selector: 'paste:'
+        },
         {
           label: 'Select All',
           accelerator: 'Command+A',
@@ -147,9 +173,16 @@ export default class MenuBuilder {
           accelerator: 'Command+M',
           selector: 'performMiniaturize:'
         },
-        { label: 'Close', accelerator: 'Command+W', selector: 'performClose:' },
+        {
+          label: 'Close',
+          accelerator: 'Command+W',
+          selector: 'performClose:'
+        },
         { type: 'separator' },
-        { label: 'Bring All to Front', selector: 'arrangeInFront:' }
+        {
+          label: 'Bring All to Front',
+          selector: 'arrangeInFront:'
+        }
       ]
     };
     const subMenuHelp: MenuItemConstructorOptions = {

@@ -44,6 +44,10 @@ const PixiComponentViewport = PixiComponent('Viewport', {
         friction: 0.8
       });
 
+    window.addEventListener('resize', () =>
+      viewport.resize(window.innerWidth, window.innerHeight)
+    );
+
     // viewport.clamp({ direction: 'all' });
 
     return viewport;

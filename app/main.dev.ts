@@ -103,7 +103,9 @@ const createWindow = async () => {
 
   opencvWorkerWindow.on('close', event => {
     // only hide window and prevent default if app not quitting
-    opencvWorkerWindow.hide();
+    if (opencvWorkerWindow !== null) {
+      opencvWorkerWindow.hide();
+    }
     event.preventDefault();
   });
 
@@ -151,29 +153,33 @@ app.on('activate', () => {
   if (mainWindow === null) createWindow();
 });
 
-// ipcMain.handle('some-name', async (event, someArgument) => {
+// ipcMain.handle('some-name', async (_, someArgument) => {
 //   const result = await doSomeWork(someArgument);
 //   return result;
 // });
 
 ipcMain.on(
   'message-from-mainWindow-to-opencvWorkerWindow',
-  (e, ipcName, ...args) => {
+  (_, ipcName, ...args) => {
     log.debug(
       `mainThread | passing ${ipcName} from mainWindow to opencvWorkerWindow`
     );
     // log.debug(...args);
-    opencvWorkerWindow.webContents.send(ipcName, ...args);
+    if (opencvWorkerWindow !== null) {
+      opencvWorkerWindow.webContents.send(ipcName, ...args);
+    }
   }
 );
 
 ipcMain.on(
   'message-from-opencvWorkerWindow-to-mainWindow',
-  (e, ipcName, ...args) => {
+  (_, ipcName, ...args) => {
     log.debug(
       `mainThread | passing ${ipcName} from opencvWorkerWindow to mainWindow`
     );
     // log.debug(...args);
-    mainWindow.webContents.send(ipcName, ...args);
+    if (mainWindow !== null) {
+      mainWindow.webContents.send(ipcName, ...args);
+    }
   }
 );

@@ -50,9 +50,9 @@ const receiveThumb$ = fromEvent(ipcRenderer, 'receive-thumb').pipe(
 );
 
 export default function Home() {
-  const refStage = useRef(null);
-  const refViewport = useRef(null);
-  const refRectangle = useRef(null);
+  const refStage = useRef();
+  const refViewport = useRef();
+  const refRectangle = useRef();
 
   const [thumbArray, setThumbArray] = useState<Array<Thumb>>([]);
   const [gridPositionArray, setGridPositionArray] = useState<

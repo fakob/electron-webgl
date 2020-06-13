@@ -34,7 +34,14 @@ export const getMovieInfo = (filePath: string): MovieInfo => {
   return {};
 };
 
-export const mapRange = (value, low1, high1, low2, high2, returnInt = true) => {
+export const mapRange = (
+  value: number,
+  low1: number,
+  high1: number,
+  low2: number,
+  high2: number,
+  returnInt = true
+) => {
   // special case, prevent division by 0
   if (high1 - low1 === 0) {
     return 0;
@@ -65,8 +72,8 @@ export const getThumbs = (
       if (mat.empty === false) {
         // show image
         // console.log(mat);
-        // const matScaled = mat.resizeToMax(960);
-        const outBase64 = cv.imencode('.jpg', mat).toString('base64'); // Perform base64 encoding
+        const matScaled = mat.resizeToMax(960);
+        const outBase64 = cv.imencode('.jpg', matScaled).toString('base64'); // Perform base64 encoding
         // base64Array.push(`data:image/jpeg;base64,${outBase64}`);
         const outBase64String = `data:image/jpeg;base64,${outBase64}`;
         ipcRenderer.send(
@@ -104,7 +111,7 @@ export const getThumbs = (
   return undefined;
 };
 
-ipcRenderer.on('get-file-details', (event, path) => {
+ipcRenderer.on('get-file-details', (_, path) => {
   log.debug('opencvWorkerWindow | on get-file-details');
   // log.debug(fileId);
   log.debug(`opencvWorkerWindow | ${path}`);
@@ -117,7 +124,7 @@ ipcRenderer.on('get-file-details', (event, path) => {
   );
 });
 
-ipcRenderer.on('get-thumbs', (event, path, frameNumberArray) => {
+ipcRenderer.on('get-thumbs', (_, path, frameNumberArray) => {
   log.debug('opencvWorkerWindow | on get-thumbs');
   // log.debug(fileId);
   log.debug(`opencvWorkerWindow | ${path}`);
