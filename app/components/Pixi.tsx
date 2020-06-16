@@ -1,102 +1,17 @@
 import React from 'react';
 import { Graphics, Text } from 'pixi.js';
 import { Viewport as PixiViewport } from 'pixi-viewport';
-import { PixiComponent, useApp } from '@inlet/react-pixi';
 import { GridPosition, Props } from '../constants/interfaces';
 
-export const Viewport = (props: Props) => {
-  const app = useApp();
-  // console.log(app);
-  return <PixiComponentViewport app={app} {...props} />;
-};
+// export const Viewport = (props: Props) => {
+//   const app = useApp();
+//   // console.log(app);
+//   return <PixiComponentViewport app={app} {...props} />;
+// };
 
-interface PixiComponentProps {
-  app: PIXI.Application;
-}
-
-const PixiComponentViewport = PixiComponent('Viewport', {
-  create: (props: PixiComponentProps & Props) => {
-    const viewport = new PixiViewport({
-      screenWidth: props.screenWidth,
-      screenHeight: props.screenHeight,
-      worldWidth: props.worldWidth,
-      worldHeight: props.worldHeight,
-      ticker: props.app.ticker,
-      interaction: props.app.renderer.plugins.interaction
-      // the interaction module is important for wheel to work properly when renderer.view is placed or scaled
-    });
-    //viewport.on("drag-start", () => console.log("drag-start"));
-    //viewport.on("drag-end", () => console.log("drag-end"));
-    viewport.on('clicked', () => {
-      console.log('clicked');
-      // viewport.fitWorld();
-      viewport.fit();
-      viewport.moveCenter(props.screenWidth / 2, props.screenHeight / 2);
-    });
-
-    viewport
-      .drag()
-      .pinch()
-      .wheel()
-      // .clamp({ direction: 'all' })
-      // .clampZoom({ minScale: 0.5, maxScale: 1 })
-      .decelerate({
-        friction: 0.8
-      });
-
-    window.addEventListener('resize', () =>
-      viewport.resize(window.innerWidth, window.innerHeight)
-    );
-
-    // viewport.clamp({ direction: 'all' });
-
-    return viewport;
-  },
-  applyProps: (instance, oldProps, newProps) => {
-    console.log('applyProps');
-  },
-  didMount: () => {
-    console.log('didMount');
-  },
-  willUnmount: () => {
-    console.log('willUnmount');
-  }
-});
-
-export const Rectangle = PixiComponent('Rectangle', {
-  create: props => new Graphics(),
-  applyProps: (instance, oldProps, props) => {
-    const { x, y, width, height, fill } = props;
-    if (
-      x !== oldProps.x ||
-      y !== oldProps.y ||
-      width !== oldProps.width ||
-      height !== oldProps.height ||
-      fill !== oldProps.fill
-    ) {
-      instance.clear();
-      instance.beginFill(fill);
-      instance.drawRect(x, y, width, height);
-      instance.endFill();
-    }
-  }
-});
-
-export const FastText = PixiComponent('FastText', {
-  create: props => new Text(props.text),
-  applyProps: (instance, oldProps, props) => {
-    const { x, y, text } = props;
-
-    if (x !== oldProps.x || y !== oldProps.y) {
-      instance.x = x;
-      instance.y = y;
-    }
-
-    if (text !== oldProps.text) {
-      instance.text = text;
-    }
-  }
-});
+// interface PixiComponentProps {
+//   app: PIXI.Application;
+// }
 
 export const getGridPosition = (
   columnCount: number,

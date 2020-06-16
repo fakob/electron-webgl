@@ -5,10 +5,11 @@ import * as cv from 'opencv4nodejs';
 import { fromEvent, animationFrameScheduler } from 'rxjs';
 import { first, takeUntil, tap, bufferTime, delay } from 'rxjs/operators';
 import * as PIXI from 'pixi.js';
-import { Stage, Sprite, Text } from '@inlet/react-pixi';
+import { Viewport } from 'pixi-viewport';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactSlider from 'react-slider';
-import { Viewport, Rectangle, FastText, getGridPositionArray } from './Pixi';
+import InitialImage from '../../internals/img/js.png';
+import { getGridPositionArray } from './Pixi';
 import styles from './Home.css';
 import {
   GridPosition,
@@ -49,10 +50,14 @@ const receiveThumb$ = fromEvent(ipcRenderer, 'receive-thumb').pipe(
   takeUntil(doneReceivingThumbs$)
 );
 
+let app: PIXI.Application;
+let viewport: Viewport;
+
 export default function Home() {
   const refStage = useRef();
   const refViewport = useRef();
   const refRectangle = useRef();
+  const myCanvas = useRef();
 
   const [thumbArray, setThumbArray] = useState<Array<Thumb>>([]);
   const [gridPositionArray, setGridPositionArray] = useState<
@@ -74,21 +79,102 @@ export default function Home() {
     thisMovieInfo: MovieInfo
   ) => {
     const { width = 0, height = 0 } = thisMovieInfo;
-    setGridPositionArray(
-      getGridPositionArray(
-        thisColumnCount,
-        window.innerWidth,
-        window.innerHeight,
-        width,
-        height,
-        thisAmount
-      )
+    const thisGridPositionArray = getGridPositionArray(
+      thisColumnCount,
+      window.innerWidth,
+      window.innerHeight,
+      width,
+      height,
+      thisAmount
     );
+
+    setGridPositionArray(thisGridPositionArray);
+    console.log(viewport);
+    if (viewport.children.length > 0) {
+      viewport.children.map((child, index) => {
+        child.position.set(
+          thisGridPositionArray[index]?.x,
+          thisGridPositionArray[index]?.y
+        );
+        // child.scale.set(thisGridPositionArray[index]?.scale);
+        return undefined;
+      });
+    }
   };
 
   // on mount
   useEffect(() => {
-    console.log('viewport instance: ', refViewport.current);
+    app = new PIXI.Application({
+      width: 300,
+      height: 200,
+      backgroundColor: 0x00ff00,
+      resolution: window.devicePixelRatio || 1,
+      view: myCanvas.current // getContext('2d')
+    });
+    // create viewport
+    viewport = new Viewport({
+      screenWidth: window.innerWidth,
+      screenHeight: window.innerHeight,
+      worldWidth: 1000,
+      worldHeight: 1000,
+
+      interaction: app.renderer.plugins.interaction // the interaction module is important for wheel to work properly when renderer.view is placed or scaled
+    });
+
+    console.log(viewport);
+    // add the viewport to the stage
+    app.stage.addChild(viewport);
+
+    // activate plugins
+    // viewport.on('clicked', () => {
+    //   console.log('clicked');
+    //   // viewport.fitWorld();
+    //   viewport.fit();
+    //   viewport.moveCenter(viewport.screenWidth / 2, viewport.screenHeight / 2);
+    // });
+
+    viewport
+      .drag()
+      .pinch()
+      .wheel()
+      // .clamp({ direction: 'all' })
+      // .clampZoom({ minScale: 0.5, maxScale: 1 })
+      .decelerate({
+        friction: 0.8
+      });
+
+    window.addEventListener('resize', () =>
+      viewport.resize(window.innerWidth, window.innerHeight)
+    );
+
+    // add a red box
+    const sprite = viewport.addChild(new PIXI.Sprite(PIXI.Texture.WHITE));
+    sprite.tint = 0xff0000;
+    sprite.width = sprite.height = 100;
+    sprite.position.set(100, 100);
+
+    // // load the texture we need
+    // app.loader.add('bunny', InitialImage).load((loader, resources) => {
+    //   // This creates a texture from a 'bunny.png' image
+    //   const bunny = new PIXI.Sprite(resources.bunny.texture);
+
+    //   // Setup the position of the bunny
+    //   bunny.x = app.renderer.width / 2;
+    //   bunny.y = app.renderer.height / 2;
+
+    //   // Rotate around the center
+    //   bunny.anchor.x = 0.5;
+    //   bunny.anchor.y = 0.5;
+
+    //   // Add the bunny to the scene we are building
+    //   viewport.addChild(bunny);
+
+    //   // Listen for frame updates
+    //   app.ticker.add(() => {
+    //     // each frame we spin the bunny around a bit
+    //     bunny.rotation += 0.01;
+    //   });
+    // });
   }, []);
 
   // on thumbArray change
@@ -103,12 +189,30 @@ export default function Home() {
     const newMovieInfo = getMovieInfo(moviePath);
     const { frameCount = 0 } = newMovieInfo;
     setMovieInfo(newMovieInfo);
+    const { width, height } = newMovieInfo;
+    const gPA = getGridPositionArray(
+      columnCount,
+      window.innerWidth,
+      window.innerHeight,
+      width,
+      height,
+      amount
+    );
     if (frameCount !== 0) {
       const frameNumberArray = Array.from(Array(amount).keys()).map(x =>
         mapRange(x, 0, amount - 1, 0, frameCount - 1, true)
       );
-      const emptyThumbArray = frameNumberArray.map(item => {
+      const emptyThumbArray = frameNumberArray.map((item, index) => {
+        // add a red box
+        const sprite = viewport.addChild(new PIXI.Sprite(PIXI.Texture.WHITE));
+        // sprite.tint = 0x0000ff;
+        const { x = 0, y = 0, scale = 0 } = gPA[index];
+        sprite.alpha = 0.3;
+        sprite.width = width * scale;
+        sprite.height = height * scale;
+        sprite.position.set(x, y);
         return {
+          spriteRef: sprite,
           frameNumber: item,
           base64: 'data:image/jpeg;base64,'
         };
@@ -134,6 +238,13 @@ export default function Home() {
               if (thumbIndex < 0) {
                 return thumb;
               }
+              const newTexture = PIXI.Texture.from(
+                receivedThumbArray[thumbIndex].base64
+              );
+              receivedThumbArray[thumbIndex].spriteRef = thumb.spriteRef;
+              receivedThumbArray[thumbIndex].spriteRef.texture = newTexture;
+              receivedThumbArray[thumbIndex].spriteRef.alpha = 1;
+
               return receivedThumbArray[thumbIndex];
             });
             // console.log(base64OfThumb);
@@ -180,10 +291,15 @@ export default function Home() {
   };
 
   const onFitClick = async () => {
-    console.log(refStage.current);
-    console.log(refViewport.current);
-    console.log(refRectangle.current);
+    // console.log(refStage.current);
+    // console.log(refViewport.current);
+    // console.log(refRectangle.current);
     // PixiComponentViewport.moveCenter(0, 0);
+
+    console.log(app);
+    console.log(viewport);
+    viewport.fit();
+    viewport.moveCenter(viewport.screenWidth / 2, viewport.screenHeight / 2);
 
     const receiveFileDetailsObservable = fromEvent(
       ipcRenderer,
@@ -200,7 +316,6 @@ export default function Home() {
     console.log(result);
   };
 
-  const { width, height } = movieInfo;
   // console.log(gridPositionArray);
 
   return (
@@ -208,6 +323,7 @@ export default function Home() {
       //  className={styles.container}
       data-tid="container"
     >
+      <canvas ref={myCanvas} />
       {thumbOptions.show && (
         <div
           className={styles.thumbOptions}
@@ -238,7 +354,8 @@ export default function Home() {
         onAfterChange={value => {
           console.log(value);
           if (typeof value === 'number') {
-            setThumbArray([]);
+            setThumbArray([]); // delete all thumbs
+            viewport.removeChildren(); // delete all sprites
             setAmount(value);
           }
         }}
@@ -270,7 +387,7 @@ export default function Home() {
           }
         }}
       />
-      <Stage
+      {/* <Stage
         ref={refStage}
         width={700}
         height={500}
@@ -372,7 +489,7 @@ export default function Home() {
               );
             })}
         </Viewport>
-      </Stage>
+      </Stage> */}
     </div>
   );
 }

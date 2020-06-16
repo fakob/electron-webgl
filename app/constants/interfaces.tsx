@@ -1,3 +1,5 @@
+import { Sprite } from "pixi.js";
+
 export interface GridPosition {
   x: number;
   y: number;
@@ -13,6 +15,7 @@ export interface Props {
 }
 
 export interface Thumb {
+  spriteRef: Sprite;
   base64: string;
   frameNumber: number;
 }
